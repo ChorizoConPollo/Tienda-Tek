@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiendatek - Tu Tienda de Confianza</title>
+    <style>
+        :root { --primary-color: #ff6b35; --secondary-color: #ff9a8b; --dark-color: #333; --light-color: #fff; --grey-color: #666; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f4f7f6; margin: 0; padding: 0; visibility: hidden; }
+        body.visible { visibility: visible; background: linear-gradient(135deg, #fad0c4 0%, #ff9a8b 100%); }
+        .header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1); position: sticky; top: 0; z-index: 100; }
+        .menu-toggle { display: flex; flex-direction: column; cursor: pointer; padding: 5px; }
+        .menu-line { width: 25px; height: 3px; background: var(--primary-color); margin: 2px 0; border-radius: 2px; }
+        .logo { font-size: 1.8rem; font-weight: 700; color: var(--dark-color); }
+        .logo .highlight { color: var(--primary-color); }
+        .search-container { flex: 1; max-width: 400px; margin: 0 30px; }
+        .search-box { width: 100%; padding: 12px 20px; border: 2px solid var(--secondary-color); border-radius: 25px; font-size: 1rem; }
+        .user-actions { display: flex; gap: 20px; align-items: center; }
+        #userName { font-weight: 600; }
+        .cart-btn { position: relative; cursor: pointer; }
+        .cart-badge { position: absolute; top: -5px; right: -5px; background: var(--primary-color); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .main-container { padding: 30px; max-width: 1200px; margin: 0 auto; }
+        #current-filter { font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; }
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; }
+        .product-card { background: white; border-radius: 20px; padding: 0; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; }
+        .product-card img { width: 100%; height: 160px; object-fit: cover; background-color: #eee; }
+        .product-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .product-name { font-size: 1.1rem; font-weight: 600; }
+        .product-price { font-size: 1.2rem; font-weight: 700; color: var(--primary-color); margin: 8px 0 15px; }
+        .add-to-cart-btn { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 25px; font-weight: 600; cursor: pointer; width: 100%; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 600px; }
+        .close-btn { float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .sidebar { position: fixed; top: 0; left: 0; width: 280px; height: 100%; background: #fff; box-shadow: 5px 0 15px rgba(0,0,0,0.1); transform: translateX(-100%); transition: transform 0.3s ease-in-out; z-index: 1001; padding: 20px; display: flex; flex-direction: column; }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar-header { text-align: center; margin-bottom: 30px; }
+        .sidebar-nav ul { list-style: none; padding: 0; }
+        .sidebar-nav li { margin-bottom: 10px; }
+        .sidebar-nav a { display: block; padding: 12px 15px; text-decoration: none; color: var(--dark-color); border-radius: 8px; }
+        .sidebar-footer { margin-top: auto; }
+        .logout-btn { background: #ff4757; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+        .overlay.show { display: block; }
+        #auth-modal-content { max-width: 400px; text-align: center; }
+        #auth-modal-content form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        #auth-modal-content input { padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
+        #auth-modal-content a { color: var(--primary-color); cursor: pointer; }
+        .remove-item-btn { background: #ff4757; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-weight: bold; margin-left: 15px; }
+        .image-error { background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header"><div class="logo">Tienda<span class="highlight">tek</span></div></div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="#" onclick="fetchProductsAndCloseMenu()">Todos los Productos</a></li>
+                <li id="categories-menu">
+                    <a href="#">Categorías</a>
+                    <ul id="category-list" style="list-style: none; padding-left: 20px;"></ul>
+                </li>
+                <li><a href="#" onclick="showOrderHistory()">Historial de Pedidos</a></li>
+            </ul>
+        </nav>
+        <div class="sidebar-footer"><button class="logout-btn" onclick="logout()">Cerrar Sesión</button></div>
+    </div>
+    <div id="overlay" class="overlay" onclick="toggleMenu()"></div>
+    <header class="header">
+        <div class="menu-toggle" onclick="toggleMenu()"><div class="menu-line"></div><div class="menu-line"></div><div class="menu-line"></div></div>
+        <div class="logo">Tienda<span class="highlight">tek</span></div>
+        <div class="search-container"><input type="text" class="search-box" placeholder="Buscar productos..." id="searchInput"></div>
+        <div class="user-actions">
+            <span style="font-size: 1.5rem; margin-right: 8px;">👤</span><div id="userName">Invitado</div>
+            <div class="cart-btn" onclick="openCart()"><span style="font-size: 1.5rem;">🛒</span><div class="cart-badge" id="cartBadge">0</div></div>
+        </div>
+    </header>
+    <main class="main-container">
+        <h2 id="current-filter">Todos los Productos</h2>
+        <div class="products-grid" id="productsGrid"></div>
+    </main>
+    <div id="cartModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('cartModal')">×</span><h2>Mi Carrito</h2><div id="cartItems"></div><button class="add-to-cart-btn" onclick="checkout()" style="margin-top:20px;">Realizar Pedido</button></div></div>
+    <div id="historyModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('historyModal')">×</span><h2>Historial de Pedidos</h2><div id="historyItems"></div></div></div>
+    <div id="authModal" class="modal"><div id="auth-modal-content" class="modal-content"></div></div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        const BASE_URL = 'http://localhost:3000'; // URL base sin /api
+        let cart = [];
+        let products = [];
+        let user = null;
+        let searchTimeout;
+
+        // --- LÓGICA DE INICIALIZACIÓN Y AUTENTICACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                document.body.classList.add('visible');
+                showLogin();
+                return;
+            }
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.rol === 'empleado' || payload.rol === 'admin') {
+                    window.location.replace('empleado.html');
+                } else {
+                    document.body.classList.add('visible');
+                    initializeCustomerApp();
+                }
+            } catch (e) {
+                console.error("Token inválido, limpiando sesión.", e);
+                localStorage.removeItem('token');
+                document.body.classList.add('visible');
+                showLogin();
+            }
+        });
+        
+        async function initializeCustomerApp() {
+            loadCartFromLocalStorage();
+            await checkAuth();
+            const searchInput = document.getElementById('searchInput');
+            if(searchInput) {
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        const searchTerm = document.getElementById('searchInput').value;
+                        fetchProducts(null, searchTerm);
+                    }, 500);
+                });
+            }
+        }
+
+        async function checkAuth() {
+            const data = await apiFetch('/auth/verify');
+            if (data && data.success) {
+                user = data.user;
+                document.getElementById('userName').textContent = user.Nombre;
+                closeModal('authModal');
+                await fetchProducts();
+                await fetchCategories();
+            } else {
+                logout();
+            }
+        }
+        
+        async function login(email, password) {
+            const data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ correo: email, contraseña: password }) });
+            if (data && data.success) {
+                localStorage.setItem('token', data.token);
+                window.location.reload();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+
+        function showLogin() {
+            const modalContent = document.getElementById('auth-modal-content');
+            modalContent.innerHTML = `<h3>Iniciar Sesión</h3><form id="loginForm"><input type="email" id="loginEmail" placeholder="Correo electrónico" required><input type="password" id="loginPassword" placeholder="Contraseña" required><button type="submit" class="add-to-cart-btn">Entrar</button></form><p>¿No tienes cuenta? <a onclick="showRegister()">Regístrate aquí</a></p>`;
+            openModal('authModal');
+            document.getElementById('loginForm').addEventListener('submit', e => {
+                e.preventDefault();
+                login(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value);
+            });
+        }
+        
+        function showRegister() {
+            const modalContent = document.getElementById('auth-modal-content');
+            modalContent.innerHTML = `<h3>Crear Cuenta</h3><form id="registerForm"><input type="text" id="registerName" placeholder="Nombre completo" required><input type="email" id="registerEmail" placeholder="Correo electrónico" required><input type="password" id="registerPassword" placeholder="Contraseña" required><div><input type="checkbox" id="isEmployeeCheck"> <label for="isEmployeeCheck">Registrarse como empleado</label></div><input type="password" id="employeeCode" placeholder="Código de empleado" style="display:none;"><button type="submit" class="add-to-cart-btn">Registrarse</button></form><p>¿Ya tienes cuenta? <a onclick="showLogin()">Inicia sesión aquí</a></p>`;
+            document.getElementById('isEmployeeCheck').addEventListener('change', e => {
+                document.getElementById('employeeCode').style.display = e.target.checked ? 'block' : 'none';
+            });
+            document.getElementById('registerForm').addEventListener('submit', async e => {
+                e.preventDefault();
+                const body = {
+                    nombre: document.getElementById('registerName').value,
+                    correo: document.getElementById('registerEmail').value,
+                    contraseña: document.getElementById('registerPassword').value,
+                    esEmpleado: document.getElementById('isEmployeeCheck').checked,
+                    codigoEmpleado: document.getElementById('employeeCode').value
+                };
+                const data = await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(body) });
+                if (data && data.success) {
+                    alert('¡Registro exitoso! Ahora puedes iniciar sesión.');
+                    showLogin();
+                }
+            });
+        }
+        
+        async function apiFetch(endpoint, options = {}) {
+            const token = localStorage.getItem('token');
+            const headers = { 'Content-Type': 'application/json', ...options.headers };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            try {
+                const response = await fetch(API_URL + endpoint, { ...options, headers });
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.message);
+                }
+                return response.json();
+            } catch (error) {
+                alert('Error: ' + error.message);
+                return null;
+            }
+        }
+
+        async function fetchProducts(category = null, searchTerm = null) {
+            let endpoint = '/products';
+            const params = new URLSearchParams();
+            if (category) {
+                params.append('categoria', category);
+            }
+            if (searchTerm) {
+                params.append('search', searchTerm);
+            }
+            if (params.toString()) {
+                endpoint += `?${params.toString()}`;
+            }
+            const data = await apiFetch(endpoint);
+            if(data && data.success) {
+                products = data.products;
+                renderProducts();
+            }
+            document.getElementById('current-filter').textContent = category || (searchTerm ? `Resultados para "${searchTerm}"` : "Todos los Productos");
+        }
+        
+        async function fetchCategories() {
+            const data = await apiFetch('/products/categories');
+            if(data && data.success) renderCategories(data.categories);
+        }
+
+        async function checkout() {
+            if (!user) { showLogin(); return; }
+            if (cart.length === 0) { alert('Tu carrito está vacío.'); return; }
+            const orderItems = cart.map(item => ({ IdProducto: item.idproducto, Cantidad: item.quantity }));
+            const data = await apiFetch('/orders', { method: 'POST', body: JSON.stringify({ items: orderItems }) });
+            if (data && data.success) {
+                alert('¡Pedido realizado con éxito!');
+                cart = [];
+                updateCartBadge();
+                saveCartToLocalStorage();
+                closeModal('cartModal');
+                await fetchProducts();
+            }
+        }
+        
+        async function showOrderHistory() {
+            if (!user) { showLogin(); return; }
+            toggleMenu(true);
+            const data = await apiFetch('/orders/history');
+            if(data && data.success) {
+                renderOrderHistory(data.orders);
+                openModal('historyModal');
+            }
+        }
+
+        // Función para construir URL de imagen correctamente
+        function getImageUrl(imagePath) {
+            if (!imagePath) {
+                return 'https://via.placeholder.com/250x160.png?text=Sin+Imagen';
+            }
+            
+            // Si la imagen ya es una URL completa, la retornamos tal como está
+            if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+                return imagePath;
+            }
+            
+            // Si la imagen empieza con /, la concatenamos con BASE_URL
+            if (imagePath.startsWith('/')) {
+                return BASE_URL + imagePath;
+            }
+            
+            // Si no empieza con /, agregamos / antes de concatenar
+            return BASE_URL + '/' + imagePath;
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            if(!grid) return;
+            
+            grid.innerHTML = products.map(p => {
+                const imageUrl = getImageUrl(p.imagen_url);
+                return `
+                <div class="product-card">
+                    <img src="${imageUrl}" 
+                         alt="${p.nombre}" 
+                         onerror="this.src='https://via.placeholder.com/250x160.png?text=Sin+Imagen'; this.classList.add('image-error');">
+                    <div class="product-info">
+                        <div>
+                            <div class="product-name">${p.nombre}</div>
+                            <div class="product-price">$${Number(p.preciounitario).toLocaleString()}</div>
+                        </div>
+                        <button class="add-to-cart-btn" onclick="addToCart(${p.idproducto})">Agregar al Carrito</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        
+        function renderCategories(categories) {
+            const list = document.getElementById('category-list');
+            if (!list) return;
+            list.innerHTML = categories.map(cat => `<li><a href="#" onclick="fetchProductsAndCloseMenu('${cat}')">${cat}</a></li>`).join('');
+        }
+        
+        function renderOrderHistory(orders) {
+            const container = document.getElementById('historyItems');
+            if (orders.length === 0) { container.innerHTML = '<p>No tienes pedidos anteriores.</p>'; return; }
+            container.innerHTML = orders.map(order => `
+                <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px;">
+                    <h4>Pedido #${order.id} - ${new Date(order.fecha).toLocaleDateString()}</h4>
+                    <p><strong>Total: $${Number(order.total).toLocaleString()}</strong></p>
+                    <ul>${order.items.map(item => `<li>${item.cantidad} x ${item.nombre || '[Producto Eliminado]' }</li>`).join('')}</ul>
+                </div>`).join('');
+        }
+
+        function saveCartToLocalStorage() { localStorage.setItem('tiendatek_cart', JSON.stringify(cart)); }
+        function loadCartFromLocalStorage() {
+            const savedCart = localStorage.getItem('tiendatek_cart');
+            if (savedCart) try { cart = JSON.parse(savedCart); } catch(e) { cart = []; }
+            updateCartBadge();
+        }
+        function addToCart(productId) {
+            const product = products.find(p => p.idproducto === productId);
+            if (!product) return;
+            const cartItem = cart.find(item => item.idproducto === productId);
+            if (cartItem) cartItem.quantity++;
+            else cart.push({ ...product, quantity: 1 });
+            saveCartToLocalStorage();
+            updateCartBadge();
+        }
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.idproducto !== productId);
+            saveCartToLocalStorage();
+            updateCartBadge();
+            openCart();
+        }
+        function updateCartBadge() { document.getElementById('cartBadge').textContent = cart.reduce((sum, item) => sum + item.quantity, 0); }
+        function openCart() {
+            const cartItemsEl = document.getElementById('cartItems');
+            if (cart.length === 0) { cartItemsEl.innerHTML = '<p>Tu carrito está vacío.</p>'; }
+            else {
+                const total = cart.reduce((sum, item) => sum + item.preciounitario * item.quantity, 0);
+                cartItemsEl.innerHTML = cart.map(item => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <span>${item.quantity} x ${item.nombre}</span>
+                        <div><strong>$${(item.preciounitario * item.quantity).toLocaleString()}</strong><button class="remove-item-btn" onclick="removeFromCart(${item.idproducto})">×</button></div>
+                    </div>`).join('') + `<hr><p style="text-align:right; font-weight:bold; margin-top:10px;">Total: $${total.toLocaleString()}</p>`;
+            }
+            openModal('cartModal');
+        }
+
+        function toggleMenu(forceClose = false) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            if (forceClose) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('show');
+            } else {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('show');
+            }
+        }
+        function fetchProductsAndCloseMenu(category = null) {
+            toggleMenu(true);
+            document.getElementById('searchInput').value = '';
+            fetchProducts(category, null);
+        }
+        function openModal(modalId) { document.getElementById(modalId).classList.add('show'); }
+        function closeModal(modalId) { document.getElementById(modalId).classList.remove('show'); }
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Ignorar dependencias (se instalan luego)
+backend/node_modules
+
+# ¡MUY IMPORTANTE! Ignorar variables de entorno con secretos
+backend/.env
+
+# Ignorar imágenes subidas por usuarios (se generan en el servidor)
+backend/uploads/
+
+# Archivos basura del sistema operativo
+.DS_Store

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Empleado - Tiendatek</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: linear-gradient(135deg, #F4B5A0 0%, #E8A588 100%);
+            min-height: 100vh;
+            visibility: hidden;
+            color: #2d3748;
+        }
+        
+        body.visible { 
+            visibility: visible; 
+        }
+
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(244, 181, 160, 0.1) 0%, rgba(232, 165, 136, 0.1) 100%);
+            z-index: -1;
+        }
+
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 24px 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #E8A588, #D4906B);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .welcome-text {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #fc8181, #f56565);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(245, 101, 101, 0.3);
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px -1px rgba(245, 101, 101, 0.4);
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 8px;
+            margin-bottom: 32px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            gap: 4px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            background: transparent;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #718096;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #E8A588, #D4906B);
+            color: white;
+            box-shadow: 0 8px 15px -3px rgba(232, 165, 136, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .tab-button:not(.active):hover {
+            background: rgba(232, 165, 136, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-content h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .product-form {
+            background: linear-gradient(135deg, rgba(232, 165, 136, 0.05), rgba(212, 144, 107, 0.05));
+            padding: 32px;
+            border-radius: 20px;
+            margin-bottom: 32px;
+            border: 1px solid rgba(232, 165, 136, 0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .form-control {
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #E8A588;
+            box-shadow: 0 0 0 3px rgba(232, 165, 136, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .form-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(72, 187, 120, 0.3);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px -1px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #a0aec0, #718096);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(160, 174, 192, 0.3);
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px -1px rgba(160, 174, 192, 0.4);
+        }
+
+        .btn-edit {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            margin-right: 8px;
+            box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
+        }
+
+        .btn-edit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(66, 153, 225, 0.4);
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #fc8181, #f56565);
+            color: white;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 4px rgba(245, 101, 101, 0.3);
+        }
+
+        .btn-delete:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(245, 101, 101, 0.4);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #E8A588, #D4906B);
+            color: white;
+            padding: 20px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover {
+            background: rgba(232, 165, 136, 0.02);
+            transform: scale(1.002);
+            transition: all 0.2s ease;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .product-image:hover {
+            transform: scale(1.1);
+        }
+
+        .price-cell {
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 1.1rem;
+        }
+
+        .stock-cell {
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            background: linear-gradient(135deg, #48bb78, #38a169);
+        }
+
+        .category-tag {
+            background: linear-gradient(135deg, rgba(232, 165, 136, 0.1), rgba(212, 144, 107, 0.1));
+            color: #D4906B;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(232, 165, 136, 0.2);
+        }
+
+        .sale-items {
+            max-width: 300px;
+            line-height: 1.6;
+        }
+
+        .sale-total {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #2d3748;
+        }
+
+        .log-date {
+            font-size: 0.9rem;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .log-action {
+            background: linear-gradient(135deg, rgba(72, 187, 120, 0.1), rgba(56, 161, 105, 0.1));
+            color: #38a169;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(72, 187, 120, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .product-form {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .data-table {
+                font-size: 0.9rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 12px 8px;
+            }
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #E8A588;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-overlay"></div>
+    <div class="container">
+        <div class="header">
+            <h1>Panel de Empleado</h1>
+            <div class="user-info">
+                <span class="welcome-text">Bienvenido, <span id="employeeName"></span></span>
+                <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('products')">🛍️ Gestión de Productos</button>
+            <button class="tab-button" onclick="showTab('sales')">📊 Detalle de Ventas</button>
+            <button class="tab-button" onclick="showTab('logs')">📝 Historial de Actividades</button>
+        </div>
+
+        <div id="products" class="tab-content active"></div>
+        <div id="sales" class="tab-content"></div>
+        <div id="logs" class="tab-content"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        const BASE_URL = 'http://localhost:3000';
+        const token = localStorage.getItem('token');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!token) { window.location.replace('index.html'); return; }
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.rol !== 'empleado' && payload.rol !== 'admin') { window.location.replace('index.html'); }
+                else {
+                    document.body.classList.add('visible');
+                    initializeEmployeeApp(payload);
+                }
+            } catch (e) { logout(); }
+        });
+
+        function initializeEmployeeApp(decodedToken) {
+            document.getElementById('employeeName').textContent = decodedToken.correo;
+            loadProducts();
+        }
+
+        function logout() { localStorage.removeItem('token'); window.location.replace('index.html'); }
+        
+        async function apiFetch(endpoint, options = {}) {
+            const headers = { Authorization: `Bearer ${token}` };
+            if (!(options.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+            try {
+                const response = await fetch(API_URL + endpoint, { ...options, headers });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message);
+                return result;
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                return null;
+            }
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
+            if (tabName === 'sales') loadAllSales();
+            if (tabName === 'logs') loadLogs();
+        }
+
+        async function loadProducts() {
+            const container = document.getElementById('products');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            const data = await apiFetch('/products?stock=all');
+            if (!data || !data.success) { 
+                container.innerHTML = '<div class="empty-state"><h3>Error al cargar productos</h3><p>No se pudieron cargar los productos.</p></div>'; 
+                return; 
+            }
+            
+            const placeholderImg = 'https://via.placeholder.com/60x60.png?text=N/A';
+            
+            let tableRows = '';
+            if (data.products.length === 0) {
+                tableRows = '<tr><td colspan="6" class="empty-state"><h3>No hay productos</h3><p>Agrega tu primer producto usando el formulario de arriba.</p></td></tr>';
+            } else {
+                tableRows = data.products.map(p => `
+                    <tr>
+                        <td><img src="${BASE_URL}${p.imagen_url || placeholderImg}" alt="${p.nombre}" class="product-image"></td>
+                        <td><strong>${p.nombre}</strong></td>
+                        <td class="price-cell">$${Number(p.preciounitario).toLocaleString()}</td>
+                        <td><span class="stock-cell">${p.stock}</span></td>
+                        <td><span class="category-tag">${p.categoria}</span></td>
+                        <td>
+                            <button class="btn btn-edit" onclick='editProduct(${JSON.stringify(p)})'>✏️ Editar</button>
+                            <button class="btn btn-delete" onclick="deleteProduct(${p.idproducto})">🗑️ Eliminar</button>
+                        </td>
+                    </tr>`).join('');
+            }
+            
+            container.innerHTML = `
+                <h2>🛍️ Gestión de Productos</h2>
+                <form id="productForm" class="product-form">
+                    <input type="hidden" id="productId">
+                    <input type="hidden" id="currentImageUrl">
+                    <div class="form-group">
+                        <label for="productName">Nombre del Producto:</label>
+                        <input type="text" id="productName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productDesc">Descripción:</label>
+                        <input type="text" id="productDesc" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="productPrice">Precio:</label>
+                        <input type="number" id="productPrice" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productStock">Stock:</label>
+                        <input type="number" id="productStock" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productCat">Categoría:</label>
+                        <input type="text" id="productCat" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productImage">Imagen (opcional):</label>
+                        <input type="file" id="productImage" name="imagen" accept="image/*" class="form-control">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-save">💾 Guardar Producto</button>
+                        <button type="button" onclick="clearForm()" class="btn btn-clear">🔄 Limpiar Formulario</button>
+                    </div>
+                </form>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Categoría</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                </table>`;
+            
+            document.getElementById('productForm').addEventListener('submit', handleProductFormSubmit);
+        }
+
+        async function handleProductFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('productId').value;
+            const formData = new FormData();
+            formData.append('nombre', document.getElementById('productName').value);
+            formData.append('descripcion', document.getElementById('productDesc').value);
+            formData.append('preciounitario', document.getElementById('productPrice').value);
+            formData.append('stock', document.getElementById('productStock').value);
+            formData.append('categoria', document.getElementById('productCat').value);
+            formData.append('imagen_url', document.getElementById('currentImageUrl').value);
+            const imageFile = document.getElementById('productImage').files[0];
+            if (imageFile) formData.append('imagen', imageFile);
+
+            const result = await apiFetch(id ? `/products/${id}` : '/products', { method: id ? 'PUT' : 'POST', body: formData });
+            if (result && result.success) { clearForm(); loadProducts(); }
+        }
+        
+        function editProduct(product) {
+            document.getElementById('productId').value = product.idproducto;
+            document.getElementById('productName').value = product.nombre;
+            document.getElementById('productDesc').value = product.descripcion;
+            document.getElementById('productPrice').value = product.preciounitario;
+            document.getElementById('productStock').value = product.stock;
+            document.getElementById('productCat').value = product.categoria;
+            document.getElementById('currentImageUrl').value = product.imagen_url || '';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este producto? La acción no se puede deshacer.')) return;
+            const result = await apiFetch(`/products/${id}`, { method: 'DELETE' });
+            if (result && result.success) loadProducts();
+        }
+
+        function clearForm() { 
+            document.getElementById('productForm').reset(); 
+            document.getElementById('productId').value = ''; 
+            document.getElementById('currentImageUrl').value = ''; 
+        }
+
+        async function loadAllSales() {
+            const container = document.getElementById('sales');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            const data = await apiFetch('/orders/all');
+            if (!data || !data.success) { 
+                container.innerHTML = '<div class="empty-state"><h3>Error al cargar ventas</h3><p>No se pudieron cargar las ventas.</p></div>'; 
+                return; 
+            }
+            
+            let tableRows = '';
+            if (data.sales.length === 0) {
+                tableRows = '<tr><td colspan="5" class="empty-state"><h3>No hay ventas registradas</h3><p>Las ventas aparecerán aquí cuando se realicen.</p></td></tr>';
+            } else {
+                tableRows = data.sales.map(sale => `
+                    <tr>
+                        <td><strong>#${sale.idventa}</strong></td>
+                        <td class="log-date">${new Date(sale.fecha).toLocaleString()}</td>
+                        <td><strong>${sale.nombre_cliente}</strong></td>
+                        <td class="sale-total">$${Number(sale.total).toLocaleString()}</td>
+                        <td class="sale-items">${sale.items.map(i => `<span class="category-tag">${i.cantidad}x ${i.nombre}</span>`).join('<br>')}</td>
+                    </tr>`).join('');
+            }
+            
+            container.innerHTML = `
+                <h2>📊 Detalle de Ventas</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID Venta</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Items</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                </table>`;
+        }
+        
+        async function loadLogs() {
+            const container = document.getElementById('logs');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            const data = await apiFetch('/logs');
+            if (!data || !data.success) { 
+                container.innerHTML = '<div class="empty-state"><h3>Error al cargar historial</h3><p>No se pudo cargar el historial de actividades.</p></div>'; 
+                return; 
+            }
+            
+            let tableRows = '';
+            if (data.logs.length === 0) {
+                tableRows = '<tr><td colspan="4" class="empty-state"><h3>No hay actividades registradas</h3><p>Las actividades aparecerán aquí cuando se realicen acciones.</p></td></tr>';
+            } else {
+                tableRows = data.logs.map(log => `
+                    <tr>
+                        <td class="log-date">${new Date(log.fecha).toLocaleString()}</td>
+                        <td><strong>${log.nombre_empleado}</strong></td>
+                        <td><span class="log-action">${log.accion}</span></td>
+                        <td>${log.detalles}</td>
+                    </tr>`).join('');
+            }
+            
+            container.innerHTML = `
+                <h2>📝 Historial de Actividades</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Empleado</th>
+                            <th>Acción</th>
+                            <th>Detalles</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                </table>`;
+        }
+    </script>
+</body>
+</html>
