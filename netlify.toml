@@ -1,0 +1,15 @@
+# Archivo de configuración para el despliegue en Netlify
+
+[build]
+  # Comando que Netlify ejecuta para construir tu sitio.
+  # Para HTML simple, no se necesita ningún comando.
+  command = ""
+  
+  # El directorio que contiene los archivos a ser desplegados (index.html, etc.).
+  # Esta ruta es RELATIVA al "base" directory.
+  # Como "base" es "frontend", "/" significa que los archivos están directamente dentro de "frontend".
+  publish = "/"
+
+  # El directorio raíz desde donde Netlify debe empezar a trabajar.
+  # Esto le dice a Netlify que ignore la carpeta 'backend'.
+  base = "frontend"
