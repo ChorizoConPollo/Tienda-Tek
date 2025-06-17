@@ -105,6 +105,19 @@
         let user = null;
         let searchTimeout;
 
+        /**
+         * Formatea un número como moneda en Pesos Colombianos (COP).
+         * @param {number} number - El número a formatear.
+         * @returns {string} El número formateado como moneda (ej: "$ 1.500").
+         */
+        function formatToCOP(number) {
+            return new Intl.NumberFormat('es-CO', { 
+                style: 'currency', 
+                currency: 'COP', 
+                minimumFractionDigits: 0 // No muestra centavos
+            }).format(number);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -287,7 +300,7 @@
                     <div class="product-info">
                         <div>
                             <div class="product-name">${p.nombre}</div>
-                            <div class="product-price">$${Number(p.preciounitario).toLocaleString()}</div>
+                            <div class="product-price">${formatToCOP(p.preciounitario)}</div>
                         </div>
                         <button class="add-to-cart-btn" onclick="addToCart(${p.idproducto})">Agregar al Carrito</button>
                     </div>
@@ -307,7 +320,7 @@
             container.innerHTML = orders.map(order => `
                 <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px;">
                     <h4>Pedido #${order.id} - ${new Date(order.fecha).toLocaleDateString()}</h4>
-                    <p><strong>Total: $${Number(order.total).toLocaleString()}</strong></p>
+                    <p><strong>Total: ${formatToCOP(order.total)}</strong></p>
                     <ul>${order.items.map(item => `<li>${item.cantidad} x ${item.nombre || '[Producto Eliminado]' }</li>`).join('')}</ul>
                 </div>`).join('');
         }
@@ -342,8 +355,8 @@
                 cartItemsEl.innerHTML = cart.map(item => `
                     <div style="display:flex; justify-content:space-between; align-items:center; padding: 5px 0; border-bottom: 1px solid #eee;">
                         <span>${item.quantity} x ${item.nombre}</span>
-                        <div><strong>$${(item.preciounitario * item.quantity).toLocaleString()}</strong><button class="remove-item-btn" onclick="removeFromCart(${item.idproducto})">×</button></div>
-                    </div>`).join('') + `<hr><p style="text-align:right; font-weight:bold; margin-top:10px;">Total: $${total.toLocaleString()}</p>`;
+                        <div><strong>${formatToCOP(item.preciounitario * item.quantity)}</strong><button class="remove-item-btn" onclick="removeFromCart(${item.idproducto})">×</button></div>
+                    </div>`).join('') + `<hr><p style="text-align:right; font-weight:bold; margin-top:10px;">Total: ${formatToCOP(total)}</p>`;
             }
             openModal('cartModal');
         }
