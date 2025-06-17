@@ -2,7 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
+// const helmet = require('helmet'); // Desactivado temporalmente para diagnóstico
 const path = require('path');
 
 // --- IMPORTACIÓN DE RUTAS ---
@@ -17,22 +17,10 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
 
-// 1. Helmet: Añade cabeceras de seguridad.
-// Configuramos explícitamente la Content Security Policy (CSP) para permitir imágenes
-// desde nuestro propio servidor y desde via.placeholder.com.
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "img-src": ["'self'", "https://via.placeholder.com", "data:"],
-      },
-    },
-  })
-);
+// 1. Helmet: ¡DESACTIVADO TEMPORALMENTE PARA DIAGNÓSTICO!
+// app.use(helmet(...)); // La línea original está comentada.
 
 // 2. CORS (Cross-Origin Resource Sharing)
-// Usamos la configuración permisiva para asegurar la conexión.
 const corsOptions = {
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
