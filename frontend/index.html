@@ -9,6 +9,19 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f4f7f6; margin: 0; padding: 0; visibility: hidden; }
         body.visible { visibility: visible; background: linear-gradient(135deg, #fad0c4 0%, #ff9a8b 100%); }
+        
+        /* --- Sidebar (Barra Lateral) --- */
+        .sidebar { position: fixed; top: 0; left: -280px; /* Inicia oculta */ width: 280px; height: 100%; background: #fff; box-shadow: 5px 0 15px rgba(0,0,0,0.1); transition: left 0.3s ease-in-out; z-index: 1001; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar.open { left: 0; }
+        .sidebar-header { text-align: center; margin-bottom: 30px; }
+        .sidebar-nav ul { list-style: none; padding: 0; }
+        .sidebar-nav li { margin-bottom: 10px; }
+        .sidebar-nav a { display: block; padding: 12px 15px; text-decoration: none; color: var(--dark-color); border-radius: 8px; }
+        .sidebar-footer { margin-top: auto; padding-top: 20px; }
+        .logout-btn { background: #ff4757; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; }
+        
+        /* --- Contenedor Principal y Header --- */
+        .content-wrapper { transition: margin-left 0.3s ease-in-out; }
         .header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1); position: sticky; top: 0; z-index: 100; }
         .menu-toggle { display: flex; flex-direction: column; cursor: pointer; padding: 5px; }
         .menu-line { width: 25px; height: 3px; background: var(--primary-color); margin: 2px 0; border-radius: 2px; }
@@ -20,6 +33,8 @@
         #userName { font-weight: 600; }
         .cart-btn { position: relative; cursor: pointer; }
         .cart-badge { position: absolute; top: -5px; right: -5px; background: var(--primary-color); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        
+        /* --- Grid de Productos --- */
         .main-container { padding: 30px; max-width: 1200px; margin: 0 auto; }
         #current-filter { font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; }
         .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; }
@@ -29,29 +44,26 @@
         .product-name { font-size: 1.1rem; font-weight: 600; }
         .product-price { font-size: 1.2rem; font-weight: 700; color: var(--primary-color); margin: 8px 0 15px; }
         .add-to-cart-btn { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 25px; font-weight: 600; cursor: pointer; width: 100%; }
+        
+        /* --- Modales y Overlay --- */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
         .modal.show { display: flex; }
         .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 600px; }
         .close-btn { float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .sidebar { position: fixed; top: 0; left: 0; width: 280px; height: 100%; background: #fff; box-shadow: 5px 0 15px rgba(0,0,0,0.1); transform: translateX(-100%); transition: transform 0.3s ease-in-out; z-index: 1001; padding: 20px; display: flex; flex-direction: column; }
-        .sidebar.open { transform: translateX(0); }
-        .sidebar-header { text-align: center; margin-bottom: 30px; }
-        .sidebar-nav ul { list-style: none; padding: 0; }
-        .sidebar-nav li { margin-bottom: 10px; }
-        .sidebar-nav a { display: block; padding: 12px 15px; text-decoration: none; color: var(--dark-color); border-radius: 8px; }
-        .sidebar-footer { margin-top: auto; }
-        .logout-btn { background: #ff4757; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
         .overlay.show { display: block; }
         #auth-modal-content { max-width: 400px; text-align: center; }
         #auth-modal-content form { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
         #auth-modal-content input { padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
         #auth-modal-content a { color: var(--primary-color); cursor: pointer; }
+        
+        /* --- Otros --- */
         .remove-item-btn { background: #ff4757; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-weight: bold; margin-left: 15px; }
         .image-error { background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.9rem; }
     </style>
 </head>
-<body>
+<body class="">
+
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header"><div class="logo">Tienda<span class="highlight">tek</span></div></div>
         <nav class="sidebar-nav">
@@ -67,26 +79,33 @@
         <div class="sidebar-footer"><button class="logout-btn" onclick="logout()">Cerrar Sesión</button></div>
     </div>
     <div id="overlay" class="overlay" onclick="toggleMenu()"></div>
-    <header class="header">
-        <div class="menu-toggle" onclick="toggleMenu()"><div class="menu-line"></div><div class="menu-line"></div><div class="menu-line"></div></div>
-        <div class="logo">Tienda<span class="highlight">tek</span></div>
-        <div class="search-container"><input type="text" class="search-box" placeholder="Buscar productos..." id="searchInput"></div>
-        <div class="user-actions">
-            <span style="font-size: 1.5rem; margin-right: 8px;">👤</span><div id="userName">Invitado</div>
-            <div class="cart-btn" onclick="openCart()"><span style="font-size: 1.5rem;">🛒</span><div class="cart-badge" id="cartBadge">0</div></div>
-        </div>
-    </header>
-    <main class="main-container">
-        <h2 id="current-filter">Todos los Productos</h2>
-        <div class="products-grid" id="productsGrid"></div>
-    </main>
+
+    <!-- ===== NUEVO CONTENEDOR PARA EL SCROLL ===== -->
+    <div class="content-wrapper">
+        <header class="header">
+            <div class="menu-toggle" onclick="toggleMenu()"><div class="menu-line"></div><div class="menu-line"></div><div class="menu-line"></div></div>
+            <div class="logo">Tienda<span class="highlight">tek</span></div>
+            <div class="search-container"><input type="text" class="search-box" placeholder="Buscar productos..." id="searchInput"></div>
+            <div class="user-actions">
+                <span style="font-size: 1.5rem; margin-right: 8px;">👤</span><div id="userName">Invitado</div>
+                <div class="cart-btn" onclick="openCart()"><span style="font-size: 1.5rem;">🛒</span><div class="cart-badge" id="cartBadge">0</div></div>
+            </div>
+        </header>
+
+        <main class="main-container">
+            <h2 id="current-filter">Todos los Productos</h2>
+            <div class="products-grid" id="productsGrid"></div>
+        </main>
+    </div>
+    <!-- ===== FIN DEL NUEVO CONTENEDOR ===== -->
+
     <div id="cartModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('cartModal')">×</span><h2>Mi Carrito</h2><div id="cartItems"></div><button class="add-to-cart-btn" onclick="checkout()" style="margin-top:20px;">Realizar Pedido</button></div></div>
     <div id="historyModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('historyModal')">×</span><h2>Historial de Pedidos</h2><div id="historyItems"></div></div></div>
     <div id="authModal" class="modal"><div id="auth-modal-content" class="modal-content"></div></div>
 
     <script>
-        const API_URL = 'https://tiendatek-backend.onrender.com/api'; // <-- TU URL DE RENDER
-        const BASE_URL = 'https://tiendatek-backend.onrender.com';   // <-- TU URL DE RENDER
+        const API_URL = 'https://tiendatek-backend.onrender.com/api';
+        const BASE_URL = 'https://tiendatek-backend.onrender.com';
         let cart = [];
         let products = [];
         let user = null;
@@ -198,7 +217,7 @@
                 const response = await fetch(API_URL + endpoint, { ...options, headers });
                 if (!response.ok) {
                     const errData = await response.json();
-                    throw new Error(errData.message);
+                    throw new Error(errData.message || 'Error en la petición');
                 }
                 return response.json();
             } catch (error) {
@@ -210,15 +229,10 @@
         async function fetchProducts(category = null, searchTerm = null) {
             let endpoint = '/products';
             const params = new URLSearchParams();
-            if (category) {
-                params.append('categoria', category);
-            }
-            if (searchTerm) {
-                params.append('search', searchTerm);
-            }
-            if (params.toString()) {
-                endpoint += `?${params.toString()}`;
-            }
+            if (category) params.append('categoria', category);
+            if (searchTerm) params.append('search', searchTerm);
+            if (params.toString()) endpoint += `?${params.toString()}`;
+            
             const data = await apiFetch(endpoint);
             if(data && data.success) {
                 products = data.products;
@@ -257,37 +271,26 @@
             }
         }
 
-        // Función para construir URL de imagen correctamente
         function getImageUrl(imagePath) {
-            if (!imagePath) {
+            if (!imagePath || typeof imagePath !== 'string') {
                 return 'https://via.placeholder.com/250x160.png?text=Sin+Imagen';
             }
-            
-            // Si la imagen ya es una URL completa, la retornamos tal como está
-            if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+            if (imagePath.startsWith('http')) {
                 return imagePath;
             }
-            
-            // Si la imagen empieza con /, la concatenamos con BASE_URL
-            if (imagePath.startsWith('/')) {
-                return BASE_URL + imagePath;
-            }
-            
-            // Si no empieza con /, agregamos / antes de concatenar
-            return BASE_URL + '/' + imagePath;
+            return BASE_URL + imagePath;
         }
 
         function renderProducts() {
             const grid = document.getElementById('productsGrid');
             if(!grid) return;
-            
             grid.innerHTML = products.map(p => {
                 const imageUrl = getImageUrl(p.imagen_url);
                 return `
                 <div class="product-card">
                     <img src="${imageUrl}" 
                          alt="${p.nombre}" 
-                         onerror="this.src='https://via.placeholder.com/250x160.png?text=Sin+Imagen'; this.classList.add('image-error');">
+                         onerror="this.onerror=null; this.src='https://via.placeholder.com/250x160.png?text=Sin+Imagen'; this.classList.add('image-error');">
                     <div class="product-info">
                         <div>
                             <div class="product-name">${p.nombre}</div>
@@ -355,12 +358,13 @@
         function toggleMenu(forceClose = false) {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('overlay');
-            if (forceClose) {
+            const isOpen = sidebar.classList.contains('open');
+            if (forceClose || isOpen) {
                 sidebar.classList.remove('open');
                 overlay.classList.remove('show');
             } else {
-                sidebar.classList.toggle('open');
-                overlay.classList.toggle('show');
+                sidebar.classList.add('open');
+                overlay.classList.add('show');
             }
         }
         function fetchProductsAndCloseMenu(category = null) {
