@@ -36,10 +36,8 @@ app.use(helmet());
 
 // 2. CORS (Cross-Origin Resource Sharing)
 const corsOptions = {
-  // Define de qué origen (URL del frontend) se aceptarán peticiones.
-  // Usa la variable de entorno en producción o un valor por defecto para desarrollo local.
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5500', 
-  optionsSuccessStatus: 200 // Para compatibilidad con navegadores antiguos
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5500',
+  optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
 
@@ -112,5 +110,5 @@ const startServer = async () => {
   }
 };
 
-// Ejecutamos la función para iniciar el proceso de arranque del servidor.
-startServer();
+// Ejecutamos la función  para iniciar el proceso de arranque del servidor.
+startServer();    
