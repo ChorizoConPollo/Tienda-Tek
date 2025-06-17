@@ -1,12 +1,9 @@
 // --- DEPENDENCIAS E INICIALIZACIÓN ---
-
-// Carga las variables de entorno desde el archivo .env
 require('dotenv').config();
-
 const express = require('express');
-const cors = require('cors'); // Middleware para Cross-Origin Resource Sharing
-const helmet = require('helmet'); // Middleware para seguridad
-const path = require('path'); // Módulo para trabajar con rutas de archivos
+const cors = require('cors');
+const helmet = require('helmet');
+const path = require('path');
 
 // --- IMPORTACIÓN DE RUTAS ---
 const authRoutes = require('./routes/auth');
@@ -20,22 +17,29 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
 
-// 1. Helmet: Añade cabeceras de seguridad
-app.use(helmet());
+// 1. Helmet: Añade cabeceras de seguridad.
+// Configuramos explícitamente la Content Security Policy (CSP) para permitir imágenes
+// desde nuestro propio servidor y desde via.placeholder.com.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": ["'self'", "https://via.placeholder.com", "data:"],
+      },
+    },
+  })
+);
 
-// 2. CORS (Cross-Origin Resource Sharing) - CONFIGURACIÓN ROBUSTA Y EXPLÍCITA
-// Esta configuración es muy permisiva y está diseñada para diagnosticar y resolver el problema.
-// Permite peticiones desde CUALQUIER origen.
+// 2. CORS (Cross-Origin Resource Sharing)
+// Usamos la configuración permisiva para asegurar la conexión.
 const corsOptions = {
-  origin: '*', // El comodín '*' permite peticiones de cualquier dominio.
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Métodos HTTP permitidos.
-  allowedHeaders: ['Content-Type', 'Authorization'], // Cabeceras permitidas en las peticiones.
-  optionsSuccessStatus: 204 // Código de estado para peticiones 'preflight' exitosas.
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
 };
-// Aplicamos el middleware de CORS con nuestra configuración.
 app.use(cors(corsOptions));
-// Añadimos un manejador explícito para las peticiones OPTIONS (preflight)
-// para máxima compatibilidad y para asegurarnos de que se manejen correctamente.
 app.options('*', cors(corsOptions));
 
 // 3. Middlewares para parsear el cuerpo de las peticiones
@@ -52,13 +56,11 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/logs', logRoutes);
 
 // --- MANEJO DE ERRORES Y RUTAS NO ENCONTRADAS ---
-// Middleware para capturar errores.
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ success: false, message: 'Error interno del servidor' });
 });
 
-// Middleware para capturar rutas no encontradas (404).
 app.use('*', (req, res) => {
   res.status(404).json({ success: false, message: 'Ruta no encontrada' });
 });
@@ -81,5 +83,4 @@ const startServer = async () => {
   }
 };
 
-// Iniciar el servidor
 startServer();
