@@ -286,7 +286,7 @@
             const grid = document.getElementById('productsGrid');
             if(!grid) return;
             grid.innerHTML = products.map(p => {
-                const imageUrl = getImageUrl(p.imagen_url);
+                const imageUrl = 'https://via.placeholder.com/250x160.png?text=PRUEBA';
                 return `
                 <div class="product-card">
                     <img src="${imageUrl}" 
