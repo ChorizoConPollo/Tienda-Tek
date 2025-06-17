@@ -1,62 +1,59 @@
-// Importar la clase Pool del paquete 'pg'
 const { Pool } = require('pg');
 
-// Declarar una variable para el pool de conexiones
 let pool;
+let dbConfig = {}; // Objeto para guardar la configuración
 
-// Comprobar si la variable de entorno DATABASE_URL existe.
-// Esta variable es proporcionada automáticamente por plataformas de despliegue como Render o Heroku.
 if (process.env.DATABASE_URL) {
   // --- CONFIGURACIÓN PARA PRODUCCIÓN (RENDER) ---
-  // Si DATABASE_URL existe, estamos en un entorno de producción.
-  pool = new Pool({
-    // La connectionString contiene toda la información necesaria: usuario, contraseña, host, puerto y base de datos.
+  console.log('✅ Usando configuración de base de datos de PRODUCCIÓN.');
+  dbConfig = {
     connectionString: process.env.DATABASE_URL,
-    // La mayoría de los proveedores de bases de datos en la nube requieren una conexión SSL.
-    // 'rejectUnauthorized: false' es a menudo necesario en entornos de desarrollo/gratuitos
-    // para evitar errores de certificados autofirmados.
     ssl: {
       rejectUnauthorized: false
     }
-  });
+  };
 } else {
   // --- CONFIGURACIÓN PARA DESARROLLO (LOCAL) ---
-  // Si no hay DATABASE_URL, asumimos que estamos en un entorno local.
-  // Se utilizan las variables de entorno individuales definidas en el archivo .env.
-  pool = new Pool({
+  console.log('✅ Usando configuración de base de datos LOCAL.');
+  dbConfig = {
     user: process.env.PGUSER,
     host: process.env.PGHOST,
     database: process.env.PGDATABASE,
     password: process.env.PGPASSWORD,
     port: process.env.PGPORT,
-  });
+  };
 }
 
-// Intentar conectar al pool para verificar que la configuración es correcta al iniciar la aplicación.
-pool.connect((err) => {
-  if (err) {
-    // Si hay un error, mostrarlo en la consola para un diagnóstico rápido.
-    console.error('❌ Error de conexión con PostgreSQL:', err.stack);
-  } else {
-    // Si la conexión es exitosa, mostrar un mensaje de confirmación.
-    console.log('✅ ¡Conectado a PostgreSQL exitosamente!');
-  }
+// Creamos el pool con la configuración decidida, pero no conectamos aún.
+pool = new Pool(dbConfig);
+
+// Añadimos un listener para los errores del pool.
+// Esto es útil para capturar errores de conexión que ocurren después del inicio.
+pool.on('error', (err, client) => {
+  console.error('❌ Error inesperado en el cliente del pool de PostgreSQL', err);
+  process.exit(-1);
 });
 
-// Exportar un objeto con dos métodos para interactuar con la base de datos desde otras partes de la aplicación.
-module.exports = {
-  /**
-   * Ejecuta una consulta simple.
-   * @param {string} text - El texto de la consulta SQL (ej: "SELECT * FROM usuarios WHERE id = $1").
-   * @param {Array} params - Un array de parámetros para la consulta, para prevenir inyecciones SQL.
-   * @returns {Promise<QueryResult>} El resultado de la consulta.
-   */
-  query: (text, params) => pool.query(text, params),
+// Función para verificar la conexión.
+const checkConnection = async () => {
+  let client;
+  try {
+    client = await pool.connect();
+    console.log('✅ ¡Conexión con PostgreSQL verificada exitosamente!');
+    return true;
+  } catch (err) {
+    console.error('❌ Error al verificar la conexión con PostgreSQL:', err);
+    return false;
+  } finally {
+    if (client) {
+      client.release(); // Siempre libera el cliente después de usarlo.
+    }
+  }
+};
 
-  /**
-   * Obtiene un cliente del pool. Esto es esencial para realizar transacciones
-   * (varias consultas que deben tener éxito o fallar todas juntas).
-   * @returns {Promise<PoolClient>} Un cliente de la base de datos.
-   */
+// Exportamos los métodos y la función de verificación.
+module.exports = {
+  query: (text, params) => pool.query(text, params),
   getClient: () => pool.connect(),
+  checkConnection, // Exportamos para poder usarla si es necesario
 };
