@@ -462,31 +462,74 @@
     </div>
 
     <script>
-        const API_URL = 'https://tiendatek-backend.onrender.com/api'; // <-- TU URL DE RENDER
-        const BASE_URL = 'https://tiendatek-backend.onrender.com';   // <-- TU URL DE RENDER
+        /**
+         * @file empleado.html
+         * @author Bayron Cañas
+         * @description Panel de administración para usuarios con rol de 'empleado'.
+         *              Este archivo autocontenido gestiona la visualización y manipulación
+         *              de datos críticos del negocio, como el inventario de productos,
+         *              el registro de ventas y el historial de actividades.
+         */
+
+        // --- CONSTANTES Y ESTADO GLOBAL ---
+        const API_URL = 'https://tiendatek-backend.onrender.com/api';
+        const BASE_URL = 'https://tiendatek-backend.onrender.com';
         const token = localStorage.getItem('token');
 
+        // --- INICIALIZACIÓN Y AUTENTICACIÓN ---
+
+        /**
+         * Se ejecuta cuando el DOM está completamente cargado.
+         * Verifica la existencia y validez del token de autenticación.
+         * Redirige al usuario si no tiene los permisos adecuados.
+         */
         document.addEventListener('DOMContentLoaded', () => {
-            if (!token) { window.location.replace('index.html'); return; }
+            if (!token) { 
+                window.location.replace('index.html'); 
+                return; 
+            }
             try {
+                // Decodifica el payload del JWT para una verificación rápida del rol sin llamar a la API.
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                if (payload.rol !== 'empleado' && payload.rol !== 'admin') { window.location.replace('index.html'); }
-                else {
+                if (payload.rol !== 'empleado' && payload.rol !== 'admin') { 
+                    window.location.replace('index.html'); 
+                } else {
                     document.body.classList.add('visible');
                     initializeEmployeeApp(payload);
                 }
-            } catch (e) { logout(); }
+            } catch (e) { 
+                // Si el token es inválido o malformado, limpia la sesión y redirige.
+                logout(); 
+            }
         });
 
+        /**
+         * Inicializa la aplicación del empleado después de una autenticación exitosa.
+         * @param {object} decodedToken - El payload decodificado del JWT.
+         */
         function initializeEmployeeApp(decodedToken) {
             document.getElementById('employeeName').textContent = decodedToken.correo;
-            loadProducts();
+            loadProducts(); // Carga la vista inicial de productos.
         }
 
-        function logout() { localStorage.removeItem('token'); window.location.replace('index.html'); }
+        /**
+         * Cierra la sesión del usuario eliminando el token y redirigiendo a la página principal.
+         */
+        function logout() { 
+            localStorage.removeItem('token'); 
+            window.location.replace('index.html'); 
+        }
         
+        /**
+         * Función centralizada para realizar peticiones a la API del backend.
+         * Añade automáticamente el token de autorización y maneja errores básicos.
+         * @param {string} endpoint - El endpoint de la API al que se va a llamar (ej. '/products').
+         * @param {object} options - Opciones de la petición fetch (method, body, etc.).
+         * @returns {Promise<object|null>} Una promesa que resuelve a los datos JSON o null si hay un error.
+         */
         async function apiFetch(endpoint, options = {}) {
             const headers = { Authorization: `Bearer ${token}` };
+            // Si el cuerpo no es FormData, se asume que es JSON.
             if (!(options.body instanceof FormData)) {
                 headers['Content-Type'] = 'application/json';
             }
@@ -501,26 +544,43 @@
             }
         }
 
+        // --- LÓGICA DE LA INTERFAZ DE USUARIO (TABS) ---
+
+        /**
+         * Muestra el contenido de la pestaña seleccionada y oculta las demás.
+         * Carga los datos correspondientes si la pestaña se activa por primera vez.
+         * @param {string} tabName - El ID de la pestaña a mostrar ('products', 'sales', 'logs').
+         */
         function showTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
+            
+            // Carga de datos bajo demanda para optimizar.
             if (tabName === 'sales') loadAllSales();
             if (tabName === 'logs') loadLogs();
         }
 
+        // --- GESTIÓN DE PRODUCTOS (CRUD) ---
+
+        /**
+         * Carga y renderiza la tabla de productos y el formulario de gestión.
+         * Pide todos los productos (incluyendo los que no tienen stock) al backend.
+         */
         async function loadProducts() {
             const container = document.getElementById('products');
             container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
             
+            // Se pide al backend que devuelva todos los productos, incluyendo los de stock 0.
             const data = await apiFetch('/products?stock=all');
             if (!data || !data.success) { 
                 container.innerHTML = '<div class="empty-state"><h3>Error al cargar productos</h3><p>No se pudieron cargar los productos.</p></div>'; 
                 return; 
             }
             
-            const placeholderImg = 'https://via.placeholder.com/60x60.png?text=N/A';
+            // Si una imagen no existe en Cloudinary, se usará este placeholder genérico.
+            const placeholderImg = 'https://dummyimage.com/60x60/cccccc/000000.png&text=N/A';
             
             let tableRows = '';
             if (data.products.length === 0) {
@@ -528,7 +588,12 @@
             } else {
                 tableRows = data.products.map(p => `
                     <tr>
-                        <td><img src="${BASE_URL}${p.imagen_url || placeholderImg}" alt="${p.nombre}" class="product-image"></td>
+                        <td>
+                            <img src="${p.imagen_url || placeholderImg}" 
+                                 alt="${p.nombre}" 
+                                 class="product-image" 
+                                 onerror="this.onerror=null; this.src='${placeholderImg}';">
+                        </td>
                         <td><strong>${p.nombre}</strong></td>
                         <td class="price-cell">$${Number(p.preciounitario).toLocaleString()}</td>
                         <td><span class="stock-cell">${p.stock}</span></td>
@@ -540,6 +605,7 @@
                     </tr>`).join('');
             }
             
+            // Inyecta el HTML completo para la pestaña de productos, incluyendo el formulario y la tabla.
             container.innerHTML = `
                 <h2>🛍️ Gestión de Productos</h2>
                 <form id="productForm" class="product-form">
@@ -555,7 +621,7 @@
                     </div>
                     <div class="form-group">
                         <label for="productPrice">Precio:</label>
-                        <input type="number" id="productPrice" class="form-control" step="0.01" required>
+                        <input type="number" id="productPrice" class="form-control" step="1" required>
                     </div>
                     <div class="form-group">
                         <label for="productStock">Stock:</label>
@@ -588,9 +654,15 @@
                     <tbody>${tableRows}</tbody>
                 </table>`;
             
+            // Asigna el manejador de eventos al formulario recién creado.
             document.getElementById('productForm').addEventListener('submit', handleProductFormSubmit);
         }
 
+        /**
+         * Maneja el envío del formulario para crear o actualizar un producto.
+         * Utiliza FormData para poder enviar tanto datos de texto como archivos de imagen.
+         * @param {Event} e - El evento de envío del formulario.
+         */
         async function handleProductFormSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('productId').value;
@@ -601,13 +673,28 @@
             formData.append('stock', document.getElementById('productStock').value);
             formData.append('categoria', document.getElementById('productCat').value);
             formData.append('imagen_url', document.getElementById('currentImageUrl').value);
+            
             const imageFile = document.getElementById('productImage').files[0];
-            if (imageFile) formData.append('imagen', imageFile);
+            if (imageFile) {
+                formData.append('imagen', imageFile);
+            }
 
-            const result = await apiFetch(id ? `/products/${id}` : '/products', { method: id ? 'PUT' : 'POST', body: formData });
-            if (result && result.success) { clearForm(); loadProducts(); }
+            // La misma función `apiFetch` se usa para crear (POST) o actualizar (PUT).
+            const result = await apiFetch(id ? `/products/${id}` : '/products', { 
+                method: id ? 'PUT' : 'POST', 
+                body: formData 
+            });
+
+            if (result && result.success) {
+                clearForm();
+                loadProducts(); // Recarga la lista de productos para mostrar los cambios.
+            }
         }
         
+        /**
+         * Rellena el formulario de producto con los datos de un producto existente para su edición.
+         * @param {object} product - El objeto del producto a editar.
+         */
         function editProduct(product) {
             document.getElementById('productId').value = product.idproducto;
             document.getElementById('productName').value = product.nombre;
@@ -616,21 +703,35 @@
             document.getElementById('productStock').value = product.stock;
             document.getElementById('productCat').value = product.categoria;
             document.getElementById('currentImageUrl').value = product.imagen_url || '';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Sube la vista al formulario.
         }
 
+        /**
+         * Elimina un producto por su ID tras una confirmación del usuario.
+         * @param {number} id - El ID del producto a eliminar.
+         */
         async function deleteProduct(id) {
             if (!confirm('¿Estás seguro de que quieres eliminar este producto? La acción no se puede deshacer.')) return;
             const result = await apiFetch(`/products/${id}`, { method: 'DELETE' });
-            if (result && result.success) loadProducts();
+            if (result && result.success) {
+                loadProducts(); // Recarga la lista para reflejar la eliminación.
+            }
         }
 
+        /**
+         * Limpia y resetea todos los campos del formulario de producto.
+         */
         function clearForm() { 
             document.getElementById('productForm').reset(); 
             document.getElementById('productId').value = ''; 
             document.getElementById('currentImageUrl').value = ''; 
         }
 
+        // --- VISUALIZACIÓN DE VENTAS Y LOGS ---
+
+        /**
+         * Carga y renderiza la tabla con el resumen de todas las ventas de la tienda.
+         */
         async function loadAllSales() {
             const container = document.getElementById('sales');
             container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
@@ -671,6 +772,9 @@
                 </table>`;
         }
         
+        /**
+         * Carga y renderiza la tabla con el historial de actividades de los empleados.
+         */
         async function loadLogs() {
             const container = document.getElementById('logs');
             container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';

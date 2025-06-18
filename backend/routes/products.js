@@ -1,3 +1,12 @@
+/**
+ * @file products.js
+ * @author Bayron Cañas
+ * @description Define las rutas de la API para la gestión completa de productos (CRUD).
+ *              Incluye endpoints públicos para la visualización y endpoints protegidos
+ *              para la administración, así como la integración con Cloudinary para el
+ *              almacenamiento persistente de imágenes.
+ */
+
 const express = require('express');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -7,63 +16,64 @@ const { authenticateToken, requireEmployee } = require('../middleware/auth');
 const router = express.Router();
 
 // --- Configuración de Cloudinary ---
-// Toma las credenciales de las variables de entorno que pusiste en Render.
+// Se inicializa el SDK de Cloudinary con las credenciales obtenidas de las variables de entorno.
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// --- Configuración de Multer para manejar archivos en la memoria ---
-// No guardamos las imágenes en el disco del servidor, se procesan en memoria.
+// --- Configuración de Multer ---
+// Se configura Multer para procesar los archivos en memoria (MemoryStorage) en lugar de
+// guardarlos en el disco del servidor. Esto es más eficiente y seguro para luego
+// transmitir el buffer del archivo directamente a Cloudinary.
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Función de utilidad para registrar actividad.
+/**
+ * Registra una acción realizada por un empleado en el historial de actividades.
+ * @param {number} userId - ID del usuario que realiza la acción.
+ * @param {string} action - Tipo de acción (ej. 'CREAR_PRODUCTO').
+ * @param {string} details - Descripción de la acción.
+ */
 async function logActivity(userId, action, details) {
     try {
         await db.query('INSERT INTO historialactividades(idusuario, accion, detalles) VALUES($1, $2, $3)', [userId, action, details]);
-    } catch (logError) { console.error("Fallo al registrar actividad:", logError); }
+    } catch (logError) { 
+        console.error("Fallo al registrar actividad:", logError); 
+    }
 }
 
-// --- Ruta GET para obtener productos (CON LÓGICA DE FILTRADO Y BÚSQUEDA) ---
-// Esta ruta es pública y puede ser filtrada por categoría o término de búsqueda.
+/**
+ * @route   GET /api/products
+ * @desc    Obtiene una lista de productos. Permite filtrar por categoría y/o buscar por nombre.
+ *          Construye la consulta SQL dinámicamente para ser flexible.
+ * @access  Public
+ */
 router.get('/', async (req, res) => {
     try {
         let queryText = 'SELECT * FROM productos';
-        const { categoria, search, stock } = req.query; // Capturamos los posibles filtros de la URL.
-        const conditions = [];
-        const queryParams = [];
+        const { categoria, search, stock } = req.query;
+        const conditions = [], queryParams = [];
         let paramIndex = 1;
 
-        // Por defecto, para los clientes, solo mostramos productos con stock.
-        // A menos que explícitamente se pida 'all' (usado en el panel de empleado).
+        // Por defecto, solo se muestran productos con stock, a menos que se especifique lo contrario.
         if (stock !== 'all') {
             conditions.push('stock > 0');
         }
-
-        // Si se proporciona una categoría, la añadimos como condición a la consulta.
         if (categoria) {
             conditions.push(`categoria = $${paramIndex++}`);
             queryParams.push(categoria);
         }
-        
-        // Si se proporciona un término de búsqueda, lo añadimos como condición.
-        // ILIKE hace la búsqueda insensible a mayúsculas/minúsculas.
         if (search) {
             conditions.push(`nombre ILIKE $${paramIndex++}`);
             queryParams.push(`%${search}%`);
         }
-
-        // Si hemos añadido condiciones, las unimos con 'AND' y las agregamos a la consulta principal.
         if (conditions.length > 0) {
             queryText += ' WHERE ' + conditions.join(' AND ');
         }
-        
-        // Ordenamos los resultados alfabéticamente por nombre.
         queryText += ' ORDER BY nombre';
 
-        // Ejecutamos la consulta final, pasando los valores de forma segura.
         const { rows } = await db.query(queryText, queryParams);
         res.json({ success: true, products: rows });
     } catch (error) {
@@ -72,9 +82,11 @@ router.get('/', async (req, res) => {
     }
 });
 
-
-// --- Ruta GET para obtener todas las categorías distintas ---
-// Es pública y se usa para poblar el menú de categorías.
+/**
+ * @route   GET /api/products/categories
+ * @desc    Obtiene una lista de todas las categorías de productos únicas y disponibles.
+ * @access  Public
+ */
 router.get('/categories', async (req, res) => {
     try {
         const { rows } = await db.query('SELECT DISTINCT categoria FROM productos WHERE stock > 0 ORDER BY categoria');
@@ -85,23 +97,27 @@ router.get('/categories', async (req, res) => {
     }
 });
 
-
-// --- Ruta POST para crear un nuevo producto (Protegida) ---
-// Sube la imagen a Cloudinary si existe.
+/**
+ * @route   POST /api/products
+ * @desc    Crea un nuevo producto. Si se adjunta una imagen en la petición (multipart/form-data),
+ *          ésta se sube a Cloudinary y la URL resultante se guarda en la base de datos.
+ * @access  Private (solo para empleados)
+ */
 router.post('/', authenticateToken, requireEmployee, upload.single('imagen'), async (req, res) => {
     try {
         const { nombre, descripcion, preciounitario, stock, categoria } = req.body;
         let imageUrl = null;
 
         if (req.file) {
+            // Se crea una promesa para manejar la subida asíncrona a Cloudinary.
             const result = await new Promise((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
                     if (error) reject(error);
                     resolve(result);
                 });
-                uploadStream.end(req.file.buffer);
+                uploadStream.end(req.file.buffer); // Se envía el buffer del archivo.
             });
-            imageUrl = result.secure_url;
+            imageUrl = result.secure_url; // Se obtiene la URL segura (https).
         }
         
         const query = 'INSERT INTO productos(nombre, descripcion, preciounitario, stock, categoria, imagen_url) VALUES($1, $2, $3, $4, $5, $6) RETURNING *';
@@ -114,16 +130,20 @@ router.post('/', authenticateToken, requireEmployee, upload.single('imagen'), as
     }
 });
 
-
-// --- Ruta PUT para actualizar un producto existente (Protegida) ---
-// Sube una nueva imagen a Cloudinary si se proporciona una.
+/**
+ * @route   PUT /api/products/:id
+ * @desc    Actualiza un producto existente. Si se proporciona una nueva imagen,
+ *          se sube a Cloudinary y se reemplaza la URL anterior.
+ * @access  Private (solo para empleados)
+ */
 router.put('/:id', authenticateToken, requireEmployee, upload.single('imagen'), async (req, res) => {
     try {
         const { id } = req.params;
         const { nombre, descripcion, preciounitario, stock, categoria, imagen_url } = req.body;
-        let newImageUrl = imagen_url;
+        let newImageUrl = imagen_url; // Se conserva la URL existente por defecto.
 
         if (req.file) {
+            // Si hay un archivo nuevo, se sube y se reemplaza la URL.
             const result = await new Promise((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
                     if (error) reject(error);
@@ -146,17 +166,23 @@ router.put('/:id', authenticateToken, requireEmployee, upload.single('imagen'), 
     }
 });
 
-
-// --- Ruta DELETE para eliminar un producto (Protegida) ---
+/**
+ * @route   DELETE /api/products/:id
+ * @desc    Elimina un producto de la base de datos.
+ * @access  Private (solo para empleados)
+ */
 router.delete('/:id', authenticateToken, requireEmployee, async (req, res) => {
     try {
         const { id } = req.params;
+        // Se usa RETURNING para obtener el nombre del producto eliminado y registrarlo en el log.
         const { rows } = await db.query('DELETE FROM productos WHERE idproducto = $1 RETURNING nombre', [id]);
         if (rows.length === 0) return res.status(404).json({ success: false, message: 'Producto no encontrado' });
+        
         await logActivity(req.user.IdUsuario, 'ELIMINAR_PRODUCTO', `Producto '${rows[0].nombre}' (ID: ${id}) eliminado.`);
         res.json({ success: true, message: 'Producto eliminado' });
     } catch (error) {
         console.error("Error al eliminar producto:", error);
+        // Se maneja el caso de que un producto no pueda ser borrado por tener referencias en 'detalleventas'.
         res.status(500).json({ success: false, message: "Error al eliminar. El producto puede estar asociado a ventas existentes." });
     }
 });
